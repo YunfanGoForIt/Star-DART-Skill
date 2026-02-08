@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.autodoc.ghstar</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>/usr/bin/python3</string>
+      <string>/Users/youruser/Autodoc-GitHub-StarRepo-Skill/scripts/webhook_poller.py</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/youruser/Autodoc-GitHub-StarRepo-Skill</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/youruser/Autodoc-GitHub-StarRepo-Skill/workspace/logs/github_poller.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/youruser/Autodoc-GitHub-StarRepo-Skill/workspace/logs/github_poller.err.log</string>
+  </dict>
+</plist>

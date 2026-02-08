@@ -1,0 +1,14 @@
+[Unit]
+Description=Autodoc GitHub Star Poller
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/youruser/Autodoc-GitHub-StarRepo-Skill
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/env python3 /home/youruser/Autodoc-GitHub-StarRepo-Skill/scripts/webhook_poller.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
