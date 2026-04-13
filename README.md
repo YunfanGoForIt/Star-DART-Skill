@@ -1,13 +1,13 @@
-# Autodoc-GitHub-StarRepo-Skill
+# Star-DART
 **主动触发，现在看懂，未来找回，随时可用。让你的Star列表成为你的独家知识库**
 
 # Skill介绍
 
  Star 了大量开源项目，当下觉得“以后一定用得上”，但过一段时间真正需要时，却只剩一句模糊记忆：好像有个库能做这个。再加上社交媒体介绍往往只讲结论不讲细节，自己从 README、文档到源码完整读一遍又太耗时间，结果就是收藏越来越多、可复用的理解越来越少。
 
-Autodoc-GitHub-StarRepo-Skill 的目标，是把“新增 Star”自动变成一条可检索、可回看、可复用的知识记录：一旦你 Star 了新仓库，它会主动触发 OpenClaw 的 webhook，让后续的“精读与归档”流程自动跑起来，而不是等你哪天想起再去翻历史记录。
+Star-DART 的目标，是把“新增 Star”自动变成一条可检索、可回看、可复用的知识记录：一旦你 Star 了新仓库，它会主动触发 OpenClaw 的 webhook，让后续的“精读与归档”流程自动跑起来，而不是等你哪天想起再去翻历史记录。
 
-工作原理很直接：`scripts/webhook_poller.py` 读取仓库根目录的 `.env`，定期调用 GitHub API（`GET /user/starred`）获取最近星标；再用本地状态文件记录已处理的仓库 ID，避免重复触发；发现新仓库时，向 OpenClaw 的 `hooks/agent` 发送包含仓库名、描述、链接的 webhook 消息。OpenClaw 接到任务后，结合 DeepWiki 概述与 README 生成结构化中文文档，并按分类保存到你的知识库（如 Obsidian/GitWiki）。
+工作原理很直接：`scripts/webhook_poller.py` 读取仓库根目录的 `.env`，定期调用 GitHub API（`GET /user/starred`）获取最近星标；再用本地状态文件记录已处理的仓库 ID，避免重复触发；发现新仓库时，向 OpenClaw 的 `hooks/agent` 发送包含仓库名、描述、链接的 webhook 消息。OpenClaw 接到任务后，结合 DeepWiki 概述与 README 生成结构化中文文档，保存到飞书知识库，并发送通知。
 
 它的价值在于把“看过”变成“能用”：你不必每次都从零理解项目，也不必依赖记忆去找回收藏。文档产出具备统一结构（定位、亮点、架构、快速开始、边界等），未来只要搜索关键词或按分类浏览，就能快速回到当初的判断与用法；同时支持作为系统级服务常驻运行，让开源情报流变成持续沉淀的个人/团队资产。
 
@@ -15,7 +15,7 @@ Autodoc-GitHub-StarRepo-Skill 的目标，是把“新增 Star”自动变成一
 # Skill结构
 
 ```text
-Autodoc-GitHub-StarRepo-Skill/
+Star-DART/
 ├── README.md
 ├── .env.example
 ├── SKILL.md
@@ -120,7 +120,11 @@ pip install -r requirements.txt
 GITHUB_TOKEN=你的GitHubToken
 OPENCLAW_URL=http://127.0.0.1:18789
 WEBHOOK_TOKEN=你的WebHook Token
+OPENCLAW_AGENT_ID=你的Agent ID（可选，留空使用默认agent）
 FEISHU_CHANNEL_ID=你的飞书群ID（可选）
+FEISHU_WIKI_SPACE_ID=你的飞书知识库Space ID
+FEISHU_BASE_TOKEN=你的飞书多维表格Token
+FEISHU_TABLE_ID=你的飞书多维表格Table ID
 
 获取 GitHub Token（推荐 Fine-grained PAT）：
 
@@ -140,8 +144,25 @@ LOG_FILE=./workspace/logs/github_poller.log
 说明：
 - `GITHUB_TOKEN` 需要有读取星标仓库权限
 - `STATE_FILE` 和 `LOG_FILE` 建议使用相对路径，便于跨平台使用
-- `FEISHU_CHANNEL_ID` 不填则不发送飞书通知。通过OpenClaw来帮助查找和填写这个变量
-- 飞书通知通过环境变量配置，不再使用 `config.json`
+- `FEISHU_CHANNEL_ID` 不填则不发送飞书群通知
+- `FEISHU_WIKI_SPACE_ID` 为必填，指定飞书知识库 Space ID
+- `FEISHU_BASE_TOKEN` 和 `FEISHU_TABLE_ID` 为必填，用于多维表格记录
+- 通过 `lark-cli wiki spaces list` 可查看你的知识库列表
+
+## 飞书多维表格
+
+脚本会自动在飞书知识库中记录每个处理的仓库：
+
+| 字段 | 说明 |
+|------|------|
+| 仓库名 | owner/repo 格式 |
+| 加入时间 | 自动记录 |
+| 一段话简介 | 仓库描述 |
+| 飞书文档链接 | 生成的文档链接 |
+| 一级分类 | 11 个固定分类 |
+| 详细标签 | 逗号分隔的标签 |
+
+可通过 `lark-cli base +record-list --base-token "$FEISHU_BASE_TOKEN" --table-id "$FEISHU_TABLE_ID"` 查看记录。
 
 环境变量模板：
 
@@ -151,25 +172,25 @@ LOG_FILE=./workspace/logs/github_poller.log
 
 ## 启动系统级服务（macOS / Linux / Windows）
 
-下面三种方式任选其一。路径示例以仓库目录为 `~/Autodoc-GitHub-StarRepo-Skill`。
+下面三种方式任选其一。路径示例以仓库目录为 `~/Star-DART`。
 
 ### Linux（systemd）
 
 模板文件：`services/linux-systemd.service`
 
-1. 复制模板到：`~/.config/systemd/user/autodoc-gh-star.service`
+1. 复制模板到：`~/.config/systemd/user/star-dart.service`
 2. 按模板注释替换用户名与路径
 
 ```ini
 [Unit]
-Description=Autodoc GitHub Star Poller
+Description=Star-DART GitHub Star Poller
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/youruser/Autodoc-GitHub-StarRepo-Skill
+WorkingDirectory=/home/youruser/Star-DART
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/usr/bin/env python3 /home/youruser/Autodoc-GitHub-StarRepo-Skill/scripts/webhook_poller.py
+ExecStart=/usr/bin/env python3 /home/youruser/Star-DART/scripts/webhook_poller.py
 Restart=always
 RestartSec=10
 
@@ -181,7 +202,7 @@ WantedBy=default.target
 
 ```bash
 systemctl --user daemon-reload
-systemctl --user enable --now autodoc-gh-star.service
+systemctl --user enable --now star-dart.service
 ```
 
 说明：该方式会读取仓库根目录 `.env`（脚本内 `load_dotenv()`）。
@@ -190,7 +211,7 @@ systemctl --user enable --now autodoc-gh-star.service
 
 模板文件：`services/macos-launchd.plist`
 
-1. 复制模板到：`~/Library/LaunchAgents/com.autodoc.ghstar.plist`
+1. 复制模板到：`~/Library/LaunchAgents/com.star-dart.ghstar.plist`
 2. 按模板注释替换用户名与路径
 
 ```xml
@@ -199,22 +220,22 @@ systemctl --user enable --now autodoc-gh-star.service
 <plist version="1.0">
   <dict>
     <key>Label</key>
-    <string>com.autodoc.ghstar</string>
+    <string>com.star-dart.ghstar</string>
     <key>ProgramArguments</key>
     <array>
       <string>/usr/bin/python3</string>
-      <string>/Users/youruser/Autodoc-GitHub-StarRepo-Skill/scripts/webhook_poller.py</string>
+      <string>/Users/youruser/Star-DART/scripts/webhook_poller.py</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/Users/youruser/Autodoc-GitHub-StarRepo-Skill</string>
+    <string>/Users/youruser/Star-DART</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>/Users/youruser/Autodoc-GitHub-StarRepo-Skill/workspace/logs/github_poller.out.log</string>
+    <string>/Users/youruser/Star-DART/workspace/logs/github_poller.out.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/youruser/Autodoc-GitHub-StarRepo-Skill/workspace/logs/github_poller.err.log</string>
+    <string>/Users/youruser/Star-DART/workspace/logs/github_poller.err.log</string>
   </dict>
 </plist>
 ```
@@ -222,8 +243,8 @@ systemctl --user enable --now autodoc-gh-star.service
 3. 加载并启动：
 
 ```bash
-launchctl load ~/Library/LaunchAgents/com.autodoc.ghstar.plist
-launchctl start com.autodoc.ghstar
+launchctl load ~/Library/LaunchAgents/com.star-dart.ghstar.plist
+launchctl start com.star-dart.ghstar
 ```
 
 ### Windows（任务计划程序）
@@ -236,7 +257,7 @@ launchctl start com.autodoc.ghstar
 3. 触发器：选择“计算机启动时”或“登录时”
 4. 操作：启动程序
    - 程序：`C:\Python39\python.exe`（替换为你的 Python 路径）
-   - 参数：`C:\Path\Autodoc-GitHub-StarRepo-Skill\scripts\webhook_poller.py`
-   - 起始于：`C:\Path\Autodoc-GitHub-StarRepo-Skill`
+   - 参数：`C:\Path\Star-DART\scripts\webhook_poller.py`
+   - 起始于：`C:\Path\Star-DART`
 
 说明：Windows 上同样使用仓库根目录 `.env`，确保该文件存在且路径无空格或已正确转义。

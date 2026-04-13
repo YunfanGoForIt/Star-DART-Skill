@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
-    <Description>Autodoc GitHub Star Poller</Description>
+    <Description>Star-DART GitHub Star Poller</Description>
   </RegistrationInfo>
   <Triggers>
     <LogonTrigger>
@@ -36,8 +36,8 @@
   <Actions Context="Author">
     <Exec>
       <Command>C:\Python39\python.exe</Command>
-      <Arguments>C:\Path\Autodoc-GitHub-StarRepo-Skill\scripts\webhook_poller.py</Arguments>
-      <WorkingDirectory>C:\Path\Autodoc-GitHub-StarRepo-Skill</WorkingDirectory>
+      <Arguments>C:\Path\star-dart\scripts\webhook_poller.py</Arguments>
+      <WorkingDirectory>C:\Path\star-dart</WorkingDirectory>
     </Exec>
   </Actions>
 </Task>

@@ -3,21 +3,21 @@
 <plist version="1.0">
   <dict>
     <key>Label</key>
-    <string>com.autodoc.ghstar</string>
+    <string>com.star-dart.ghstar</string>
     <key>ProgramArguments</key>
     <array>
       <string>/usr/bin/python3</string>
-      <string>/Users/youruser/Autodoc-GitHub-StarRepo-Skill/scripts/webhook_poller.py</string>
+      <string>/Users/youruser/star-dart/scripts/webhook_poller.py</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/Users/youruser/Autodoc-GitHub-StarRepo-Skill</string>
+    <string>/Users/youruser/star-dart</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>/Users/youruser/Autodoc-GitHub-StarRepo-Skill/workspace/logs/github_poller.out.log</string>
+    <string>/Users/youruser/star-dart/workspace/logs/github_poller.out.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/youruser/Autodoc-GitHub-StarRepo-Skill/workspace/logs/github_poller.err.log</string>
+    <string>/Users/youruser/star-dart/workspace/logs/github_poller.err.log</string>
   </dict>
 </plist>

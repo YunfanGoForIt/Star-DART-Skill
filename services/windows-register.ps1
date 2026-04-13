@@ -1,5 +1,5 @@
-$TaskName = "AutodocGitHubStarPoller"
-$RepoRoot = "C:\Path\Autodoc-GitHub-StarRepo-Skill"
+$TaskName = "StarDARTGitHubStarPoller"
+$RepoRoot = "C:\Path\star-dart"
 $PythonExe = "C:\Python39\python.exe"
 $ScriptPath = "$RepoRoot\scripts\webhook_poller.py"
 
