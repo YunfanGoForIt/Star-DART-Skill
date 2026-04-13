@@ -36,6 +36,7 @@ if not GITHUB_TOKEN:
 OPENCLAW_URL = os.getenv("OPENCLAW_URL", "http://127.0.0.1:18789")
 WEBHOOK_TOKEN = os.getenv("WEBHOOK_TOKEN")  # OpenClaw webhook token
 WEBHOOK_PATH = "/hooks/agent"
+OPENCLAW_AGENT_ID = os.getenv("OPENCLAW_AGENT_ID", "")  # 留空使用默认 agent
 
 # 可选通知配置（飞书群聊）
 FEISHU_CHANNEL_ID = os.getenv("FEISHU_CHANNEL_ID")
@@ -189,19 +190,21 @@ class OpenClawWebhook:
 **描述**: {description}
 **链接**: {repo_url}
 
-请执行以下任务：
+请使用 Star-DART Skill 来处理：
 1. 获取该仓库的 README 和 DeepWiki 文档
 2. 使用 AI 精炼生成高质量中文文档
-3. 自动分类到 GitWiki 相应目录
-4. 保存到 Obsidian 仓库
+3. 保存到飞书知识库
+4. 在多维表格中创建记录
 
 请开始处理。""",
             "name": "GitHub Stars Webhook",
-            "sessionKey": f"hook:github-stars:{repo_info['id']}",
             "wakeMode": "now",
             "deliver": True,
             "timeoutSeconds": 600  # 10 分钟超时
         }
+
+        if OPENCLAW_AGENT_ID:
+            payload["agentId"] = OPENCLAW_AGENT_ID
 
         if FEISHU_CHANNEL_ID:
             payload["channel"] = "feishu"
