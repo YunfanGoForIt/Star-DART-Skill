@@ -1,0 +1,37 @@
+# 环境配置
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# 日志
+*.log
+workspace/logs/
+
+# 状态文件
+workspace/github_stars_state.json
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node (如果有)
+node_modules/
+npm-debug.log
