@@ -1,263 +1,162 @@
 # Star-DART
-**主动触发，现在看懂，未来找回，随时可用。让你的Star列表成为你的独家知识库**
 
-# Skill介绍
+**让你的 Star 列表成为可检索、可复用的个人知识库。**
 
- Star 了大量开源项目，当下觉得“以后一定用得上”，但过一段时间真正需要时，却只剩一句模糊记忆：好像有个库能做这个。再加上社交媒体介绍往往只讲结论不讲细节，自己从 README、文档到源码完整读一遍又太耗时间，结果就是收藏越来越多、可复用的理解越来越少。
+Star 了大量开源项目，当下觉得"以后用得上"，过段时间只剩模糊记忆。真正需要时翻遍 Star 列表也找不到，或者找到了懒得重新看。
 
-Star-DART 的目标，是把“新增 Star”自动变成一条可检索、可回看、可复用的知识记录：一旦你 Star 了新仓库，它会主动触发 OpenClaw 的 webhook，让后续的“精读与归档”流程自动跑起来，而不是等你哪天想起再去翻历史记录。
+Star-DART 的目标：**把"看过"变成"能用"。** 一旦你 Star 了新仓库，自动生成高质量中文文档，保存到飞书知识库，配合多维表格索引，让收藏变成真正掌握。
 
-工作原理很直接：`scripts/webhook_poller.py` 读取仓库根目录的 `.env`，定期调用 GitHub API（`GET /user/starred`）获取最近星标；再用本地状态文件记录已处理的仓库 ID，避免重复触发；发现新仓库时，向 OpenClaw 的 `hooks/agent` 发送包含仓库名、描述、链接的 webhook 消息。OpenClaw 接到任务后，结合 DeepWiki 概述与 README 生成结构化中文文档，保存到飞书知识库，并发送通知。
+工作原理：`webhook_poller.py` 定期调用 GitHub API 获取最近星标，发现新仓库时向 OpenClaw 发送 webhook。OpenClaw 接到任务后，结合 DeepWiki 概述与 README 生成结构化中文文档，保存到飞书知识库，并创建多维表格索引。整个流程自动化运行，无需手动干预。文档产出具备统一结构（定位、亮点、架构、快速开始、边界等），不是简单的翻译。未来只要搜索关键词或按分类浏览，就能快速回到当初的判断与用法。
 
-它的价值在于把“看过”变成“能用”：你不必每次都从零理解项目，也不必依赖记忆去找回收藏。文档产出具备统一结构（定位、亮点、架构、快速开始、边界等），未来只要搜索关键词或按分类浏览，就能快速回到当初的判断与用法；同时支持作为系统级服务常驻运行，让开源情报流变成持续沉淀的个人/团队资产。
+主动触发，现在看懂，未来找回，随时复用。让你的GitHub Star仓库变为你的专属开源项目知识库。
+---
 
+## 👋 如果你是人类
 
-# Skill结构
+把这个发给 Agent：
 
-```text
-Star-DART/
-├── README.md
-├── .env.example
-├── SKILL.md
-├── scripts/
-│   └── webhook_poller.py
-└── references/
-    ├── classification.md
-    ├── deepwiki_mcp.md
-    ├── doc_template.md
-    └── github_stars.md
+> 请阅读 https://github.com/YunfanGoForIt/Star-DART-Skill 的 README，按照指引安装和配置 Star-DART Skill。
+
+---
+
+## 🤖 如果你是 Agent
+
+请仔细阅读下方安装指南，完成安装后引导用户配置。
+
+### 安装流程
+
+**1. 安装 lark-cli**
+```bash
+npm install -g @larksuite/cli
+lark-cli config init
+lark-cli auth login --recommend
 ```
 
-# 项目介绍
+**2. 克隆项目**
+```bash
+git clone https://github.com/YunfanGoForIt/Star-DART-Skill.git ~/Star-DART
+cd ~/Star-DART
+```
 
-这是一个 GitHub Stars 轮询器：定期检查你的星标仓库列表，发现新仓库后通过 OpenClaw 的 webhook 触发自动文档生成。它面向“收藏多、回头找难”的痛点，把“Star”变成可检索的知识资产。
-
-核心功能：
-1. 轮询 GitHub Stars（默认 60 秒，可配置）
-2. 发现新仓库后触发 OpenClaw webhook
-3. 自动记录已处理仓库，避免重复
-4. 支持跨平台作为系统服务常驻运行
-
-工作流程：
-1. 脚本读取 `.env` 配置（GitHub Token、Webhook、轮询间隔等）
-2. 请求 GitHub `GET /user/starred` 获取最近星标
-3. 对比本地状态文件，过滤已处理项
-4. 触发 OpenClaw webhook，交由技能执行文档生成
-
-适用场景：
-1. 有大量 Star 的个人或团队
-2. 需要将开源项目系统化整理进知识库
-3. 希望用自动化减少“收藏即遗忘”
-
-# 快速配置
-
-**只需把README.md交给OpenClaw或是Claude Code，让它帮你配置好即可。**
-
-## 安装依赖
-
+**3. 安装 Python 依赖**
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Windows（PowerShell）：
-
-```powershell
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
-
-## Webhook 配置
-
-1. 确认 OpenClaw 网关地址
-   - 默认地址：`http://127.0.0.1:18789`
-   - 如有变化，请在环境变量里设置 `OPENCLAW_URL`
-2. 获取 Webhook Token
-   - 在 OpenClaw 的 `openclaw.json` 中配置 `hooks.token`
-   - 将其填入环境变量 `WEBHOOK_TOKEN`
-
-`openclaw.json`中的配置示例：
-``` json
-{
-  "hooks": {
-    "enabled": true,
-    "path": "/hooks",
-    "token": "YOUR_WEBHOOK_TOKEN",
-    "_comment_webhook_token": "可通过 openssl rand -hex 24 生成",
-    "internal": {
-      "enabled": true,
-      "entries": {
-        "boot-md": { "enabled": true },
-        "command-logger": { "enabled": true },
-        "session-memory": { "enabled": true }
-      }
-    }
-  },
-  "gateway": {
-    "port": 18789,
-    "mode": "local",
-    "bind": "loopback",
-    "auth": {
-      "mode": "token",
-      "token": "YOUR_GATEWAY_TOKEN"
-    },
-    "tailscale": {
-      "mode": "off",
-      "resetOnExit": false
-    }
-  }
-}
-```
-
-说明：`WEBHOOK_TOKEN` 对应 `hooks.token`，与 `gateway.auth.token` 无关。
-
-## 环境变量配置
-
-在仓库根目录创建 `.env`，至少填写以下内容：
-
-GITHUB_TOKEN=你的GitHubToken
-OPENCLAW_URL=http://127.0.0.1:18789
-WEBHOOK_TOKEN=你的WebHook Token
-OPENCLAW_AGENT_ID=你的Agent ID（可选，留空使用默认agent）
-FEISHU_CHANNEL_ID=你的飞书群ID（可选）
-FEISHU_WIKI_SPACE_ID=你的飞书知识库Space ID
-FEISHU_BASE_TOKEN=你的飞书多维表格Token
-FEISHU_TABLE_ID=你的飞书多维表格Table ID
-
-获取 GitHub Token（推荐 Fine-grained PAT）：
-
-1. 打开 GitHub Settings -> Developer settings -> Personal access tokens -> Fine-grained tokens
-2. 点击 Generate new token，选择账号与到期时间
-3. Permissions 里勾选 User permissions -> Starring: Read
-4. 生成并复制 Token，填入 `GITHUB_TOKEN`
-
-说明：`GET /user/starred` 端点需要 “Starring: Read” 权限；如果只访问公开资源可不授权，但本脚本使用用户已登录的星标列表，因此需要 Token。
-
-可选配置：
-
-POLL_INTERVAL=120
-STATE_FILE=./workspace/github_stars_state.json
-LOG_FILE=./workspace/logs/github_poller.log
-
-说明：
-- `GITHUB_TOKEN` 需要有读取星标仓库权限
-- `STATE_FILE` 和 `LOG_FILE` 建议使用相对路径，便于跨平台使用
-- `FEISHU_CHANNEL_ID` 不填则不发送飞书群通知
-- `FEISHU_WIKI_SPACE_ID` 为必填，指定飞书知识库 Space ID
-- `FEISHU_BASE_TOKEN` 和 `FEISHU_TABLE_ID` 为必填，用于多维表格记录
-- 通过 `lark-cli wiki spaces list` 可查看你的知识库列表
-
-## 飞书多维表格
-
-脚本会自动在飞书知识库中记录每个处理的仓库：
-
-| 字段 | 说明 |
-|------|------|
-| 仓库名 | owner/repo 格式 |
-| 加入时间 | 自动记录 |
-| 一段话简介 | 仓库描述 |
-| 飞书文档链接 | 生成的文档链接 |
-| 一级分类 | 11 个固定分类 |
-| 详细标签 | 逗号分隔的标签 |
-
-可通过 `lark-cli base +record-list --base-token "$FEISHU_BASE_TOKEN" --table-id "$FEISHU_TABLE_ID"` 查看记录。
-
-环境变量模板：
-
-复制 `.env.example` 为 `.env`，再填入你的实际值。
-
-
-
-## 启动系统级服务（macOS / Linux / Windows）
-
-下面三种方式任选其一。路径示例以仓库目录为 `~/Star-DART`。
-
-### Linux（systemd）
-
-模板文件：`services/linux-systemd.service`
-
-1. 复制模板到：`~/.config/systemd/user/star-dart.service`
-2. 按模板注释替换用户名与路径
-
-```ini
-[Unit]
-Description=Star-DART GitHub Star Poller
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=/home/youruser/Star-DART
-Environment=PYTHONUNBUFFERED=1
-ExecStart=/usr/bin/env python3 /home/youruser/Star-DART/scripts/webhook_poller.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=default.target
-```
-
-3. 启动并设为开机自启：
-
+**4. 配置环境变量**
 ```bash
+cp .env.example .env
+```
+
+在 `.env` 中填写以下必填项：
+
+| 变量 | 说明 | 获取方式 |
+|------|------|----------|
+| `GITHUB_TOKEN` | GitHub API Token | GitHub Settings → Developer settings → Fine-grained tokens → Starring: Read |
+| `WEBHOOK_TOKEN` | OpenClaw Webhook Token | OpenClaw 的 `openclaw.json` 中 `hooks.token` |
+| `FEISHU_WIKI_SPACE_ID` | 飞书知识库 Space ID | `lark-cli wiki spaces list` |
+| `FEISHU_BASE_TOKEN` | 飞书多维表格 Token | 在知识库中创建多维表格后获取 |
+| `FEISHU_TABLE_ID` | 飞书多维表格 Table ID | 同上 |
+
+可选：
+- `FEISHU_CHANNEL_ID` — 飞书群 ID，不填则不发送通知
+- `OPENCLAW_AGENT_ID` — 留空使用默认 agent
+- `POLL_INTERVAL` — 轮询间隔，默认 120 秒
+
+**5. 创建飞书知识库多维表格**
+
+在飞书知识库（Space ID 填入 `FEISHU_WIKI_SPACE_ID`）中创建多维表格，包含以下字段：
+
+| 字段 | 类型 |
+|------|------|
+| 仓库名 | 文本 |
+| 加入时间 | 创建时间（自动） |
+| 一段话简介 | 文本 |
+| 飞书文档链接 | 文本 |
+| 一级分类 | 文本 |
+| 详细标签 | 文本 |
+
+**6. 启动**
+```bash
+python scripts/webhook_poller.py
+```
+
+**7. 配置系统服务（可选）**
+
+Linux:
+```bash
+cp services/linux-systemd.service ~/.config/systemd/user/star-dart.service
+# 编辑路径
 systemctl --user daemon-reload
 systemctl --user enable --now star-dart.service
 ```
 
-说明：该方式会读取仓库根目录 `.env`（脚本内 `load_dotenv()`）。
-
-### macOS（launchd）
-
-模板文件：`services/macos-launchd.plist`
-
-1. 复制模板到：`~/Library/LaunchAgents/com.star-dart.ghstar.plist`
-2. 按模板注释替换用户名与路径
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-  <dict>
-    <key>Label</key>
-    <string>com.star-dart.ghstar</string>
-    <key>ProgramArguments</key>
-    <array>
-      <string>/usr/bin/python3</string>
-      <string>/Users/youruser/Star-DART/scripts/webhook_poller.py</string>
-    </array>
-    <key>WorkingDirectory</key>
-    <string>/Users/youruser/Star-DART</string>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <true/>
-    <key>StandardOutPath</key>
-    <string>/Users/youruser/Star-DART/workspace/logs/github_poller.out.log</string>
-    <key>StandardErrorPath</key>
-    <string>/Users/youruser/Star-DART/workspace/logs/github_poller.err.log</string>
-  </dict>
-</plist>
-```
-
-3. 加载并启动：
-
+macOS:
 ```bash
+cp services/macos-launchd.plist ~/Library/LaunchAgents/com.star-dart.ghstar.plist
+# 编辑路径
 launchctl load ~/Library/LaunchAgents/com.star-dart.ghstar.plist
-launchctl start com.star-dart.ghstar
 ```
 
-### Windows（任务计划程序）
+---
 
-模板文件：`services/windows-task.xml`
-一键脚本：`services/windows-register.ps1`
+## 项目结构
 
-1. 打开“任务计划程序” -> “创建任务”
-2. 常规：勾选“使用最高权限运行”，配置为当前用户
-3. 触发器：选择“计算机启动时”或“登录时”
-4. 操作：启动程序
-   - 程序：`C:\Python39\python.exe`（替换为你的 Python 路径）
-   - 参数：`C:\Path\Star-DART\scripts\webhook_poller.py`
-   - 起始于：`C:\Path\Star-DART`
+```
+Star-DART/
+├── README.md                 # 本文件
+├── SKILL.md                  # Agent Skill 定义
+├── .env.example              # 环境变量模板
+├── requirements.txt           # Python 依赖
+├── scripts/
+│   └── webhook_poller.py     # 轮询脚本
+├── references/
+│   ├── doc_template.md       # 文档结构模板
+│   ├── deepwiki_mcp.md       # DeepWiki MCP 调用
+│   ├── tags.md               # 一级分类（11 个）
+│   ├── tags.json             # 详细标签
+│   └── feishu_card.md        # 飞书卡片格式
+└── services/                 # 系统服务配置
+```
 
-说明：Windows 上同样使用仓库根目录 `.env`，确保该文件存在且路径无空格或已正确转义。
+---
+
+## 依赖说明
+
+| 依赖 | 版本 | 说明 |
+|------|------|------|
+| Python | 3.9+ | 运行环境 |
+| httpx | ≥0.24.0 | 异步 HTTP 客户端 |
+| python-dotenv | ≥1.0.0 | 环境变量读取 |
+| lark-cli | 1.0.9+ | 飞书 CLI 工具（用于知识库、多维表格、消息发送） |
+
+---
+
+## 工作流程
+
+```
+你 Star 项目 → webhook_poller 检测到 → 触发 OpenClaw Agent
+→ DeepWiki + README 生成中文文档 → 保存到飞书知识库
+→ 创建多维表格索引 → 发送飞书卡片通知
+```
+
+---
+
+## 一级分类
+
+AI智能体框架 | 深度研究 | 学术论文 | 视频媒体 | 开发相关 | 知识管理 | 学习教程 | 效率工具 | 桌面应用 | 生物医学 | 其他
+
+详细标签参考 `references/tags.json`。
+
+---
+
+## SKILL.md
+
+Agent 在处理任务时会读取 `SKILL.md`，它定义了：
+- 何时使用这个 Skill
+- 工作流程（获取文档 → 生成 → 保存 → 索引 → 通知）
+- 文档结构要求
+- 分类和标签参考
+- 飞书卡片格式
