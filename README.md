@@ -156,6 +156,32 @@ Star-DART/
 
 Star-DART OPC 面向【商汤小浣熊 OPC 能力挑战赛 · 高手创造赛】进行了能力包装：它不只监控 GitHub Star，而是把新增 Star 交给办公小浣熊完成研究、文档、表格、看板、PPT 和知识库沉淀。
 
+### 评审要求与真实运行截图
+
+比赛群公告强调，作品需要围绕真实场景，并重点体现商汤办公小浣熊核心能力的完整呈现，而不是简单单点使用。因此 Star-DART OPC 的参赛表达重点是：**场景真实、商业价值可持续、工具融合完整、表达清晰可验证**。
+
+![OPC 评审要求与作品组织建议](docs/images/opc-scoring-requirements.jpg)
+
+以下截图来自办公小浣熊真实运行环境，展示 Star-DART OPC 已经在小浣熊中形成“定时任务 -> 本地 Agent -> 参赛方案沉淀 -> 开源项目情报处理”的闭环。
+
+**1. 定时任务：GitHub Star 轮询验证**
+
+小浣熊中配置了 `Star-DART OPC GitHub Star 轮询验证` 定时任务。任务内容要求检查 GitHub 用户公开 Star 列表是否出现新增仓库，并输出仓库名称、链接、触发来源、项目简介、价值判断、资产台账、看板指标和交付物说明。右侧执行记录显示任务已多次成功运行。
+
+![办公小浣熊定时任务与执行记录](docs/images/office-raccoon-scheduled-task.png)
+
+**2. 本地 Agent：参赛方案与工作流沉淀**
+
+小浣熊本地 Agent 中沉淀了 Star-DART 参赛方案，明确将 GitHub Star 从“收藏夹”升级为“可监控、可研判、可沉淀、可复用、可交付”的个人或团队开源项目知识资产系统。
+
+![办公小浣熊中的 Star-DART 参赛方案](docs/images/office-raccoon-project-plan.png)
+
+**3. Agent 实际处理：从新增 Star 到交付要求**
+
+小浣熊 Agent 收到 Star-DART 任务后，按完整工作流处理新增 Star：生成可沉淀到知识库的项目档案，输出 xlsx 资产台账字段，设计 data-dashboard 指标，生成社群周报推荐文案，并说明 docx/pdf/pptx 交付物章节。
+
+![办公小浣熊 Agent 实际处理 Star-DART 任务](docs/images/office-raccoon-agent-run.png)
+
 推荐展示链路：
 
 ```
