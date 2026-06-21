@@ -3,38 +3,38 @@
 GitHub Stars Webhook Poller for OpenClaw
 
 功能：
-- 每 60 秒检查 GitHub 星标仓库
-- 发现新仓库时通过 webhook 唤醒 OpenClaw 生成中文文档
+- 默认每 3 小时检查 GitHub 星标仓库，用户可通过 POLL_INTERVAL 自行调整
+- 发现新仓库时通过 webhook 唤醒 Agent，或在 dry-run 中生成办公小浣熊任务说明
 - 自动记录已处理仓库，避免重复
 
 使用方式：
-1. 修改下方配置（TOKEN, WEBHOOK_URL, OPENCLAW_URL）
-2. python3 webhook_poller.py
-3. 使用 systemd 或 screen 保持长期运行
+1. 复制 .env.example 为 .env 并填写配置
+2. python3 scripts/webhook_poller.py
+3. 演示模式：python3 scripts/webhook_poller.py --dry-run --once --sample examples/sample_starred_repo.json
 """
 
+import argparse
 import os
 import json
-import time
 import asyncio
 import logging
 from datetime import datetime
 from pathlib import Path
 
-import httpx
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ModuleNotFoundError:
+    def load_dotenv():
+        return False
 
 # ========== 配置 ==========
 load_dotenv()  # 加载 .env 文件
 
-# GitHub Token
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-if not GITHUB_TOKEN:
-    raise ValueError("请设置 GITHUB_TOKEN 环境变量")
+DEFAULT_POLL_INTERVAL = 3 * 60 * 60
 
 # OpenClaw Webhook 配置
 OPENCLAW_URL = os.getenv("OPENCLAW_URL", "http://127.0.0.1:18789")
-WEBHOOK_TOKEN = os.getenv("WEBHOOK_TOKEN")  # OpenClaw webhook token
+WEBHOOK_TOKEN = os.getenv("WEBHOOK_TOKEN", "")  # OpenClaw webhook token
 WEBHOOK_PATH = "/hooks/agent"
 OPENCLAW_AGENT_ID = os.getenv("OPENCLAW_AGENT_ID", "")  # 留空使用默认 agent
 
@@ -42,7 +42,7 @@ OPENCLAW_AGENT_ID = os.getenv("OPENCLAW_AGENT_ID", "")  # 留空使用默认 age
 FEISHU_CHANNEL_ID = os.getenv("FEISHU_CHANNEL_ID")
 
 # 轮询间隔（秒）
-POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "60"))
+POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", str(DEFAULT_POLL_INTERVAL)))
 
 # 默认工作目录（仓库根目录/workspace）
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -67,6 +67,98 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def require_httpx():
+    try:
+        import httpx
+        return httpx
+    except ModuleNotFoundError as exc:
+        raise RuntimeError("缺少依赖 httpx，请先运行 pip install -r requirements.txt") from exc
+
+
+def build_agent_payload(repo_info: dict, target: str = "openclaw") -> dict:
+    repo_name = repo_info["full_name"]
+    repo_url = repo_info.get("html_url", f"https://github.com/{repo_name}")
+    description = repo_info.get("description", "")
+
+    if target == "office-raccoon":
+        message = f"""检测到新的 GitHub 星标仓库，需要进入 Star-DART OPC 办公小浣熊工作流。
+
+**仓库**: {repo_name}
+**描述**: {description}
+**链接**: {repo_url}
+
+本项目采用定时轮询机制发现新增 Star，默认轮询间隔为 3 小时，用户可通过 POLL_INTERVAL 自行调整。
+
+请使用办公小浣熊能力完成完整沉淀，而不是单点摘要：
+1. 使用本地 Agent / 本地文件索引读取 README、DeepWiki、Release、Issue 等资料。
+2. 使用 research-synthesis 或行业研究报告专家团完成项目定位、亮点、风险和适用场景判断。
+3. 使用 docx/pdf 生成结构化项目档案。
+4. 使用 xlsx 更新开源项目资产台账。
+5. 使用 data-dashboard 生成项目分类、趋势和复用等级看板。
+6. 使用 writing-workflow 生成周报、推荐理由或社群分享文案。
+7. 必要时使用 pptx / 创意 PPT 专家团生成技术选型汇报材料。
+
+请输出可沉淀到云上知识库、飞书或 Obsidian 的项目资料。"""
+    else:
+        message = f"""检测到新的 GitHub 星标仓库！
+
+**仓库**: {repo_name}
+**描述**: {description}
+**链接**: {repo_url}
+
+请使用 Star-DART Skill 来处理：
+1. 获取该仓库的 README 和 DeepWiki 文档
+2. 使用 AI 精炼生成高质量中文文档
+3. 保存到飞书知识库
+4. 在多维表格中创建记录
+
+请开始处理。"""
+
+    return {
+        "message": message,
+        "name": "GitHub Stars Poller",
+        "wakeMode": "now",
+        "deliver": True,
+        "timeoutSeconds": 600,
+    }
+
+
+def load_sample_repo(sample_path: str) -> dict:
+    with open(sample_path, "r", encoding="utf-8") as handle:
+        data = json.load(handle)
+    if isinstance(data, list):
+        if not data:
+            raise ValueError("sample 文件为空")
+        return data[0]
+    return data
+
+
+def format_dry_run_output(repo_info: dict) -> str:
+    payload = build_agent_payload(repo_info, target="office-raccoon")
+    return f"""# Star-DART OPC DRY RUN
+
+默认轮询间隔: 3 小时
+
+## 新发现 Star
+
+- 仓库: {repo_info.get("full_name")}
+- 描述: {repo_info.get("description", "")}
+- 链接: {repo_info.get("html_url", "")}
+
+## 办公小浣熊任务说明
+
+{payload["message"]}
+
+## 预期办公产物
+
+- 项目档案: docx/pdf
+- 资产台账: xlsx/csv
+- 数据看板: data-dashboard
+- 周报材料: markdown/pdf
+- 汇报材料: pptx
+"""
+
+
 # ========== GitHub 客户端 ==========
 class GitHubMonitor:
     def __init__(self, token: str):
@@ -78,6 +170,7 @@ class GitHubMonitor:
 
     async def fetch_recent_stars(self, limit: int = 30):
         """获取最近 star 的仓库"""
+        httpx = require_httpx()
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 self.api_url,
@@ -90,6 +183,7 @@ class GitHubMonitor:
 
     async def fetch_all_stars(self):
         """获取所有 star 的仓库（分页）"""
+        httpx = require_httpx()
         all_stars = []
         page = 1
         per_page = 100
@@ -180,28 +274,7 @@ class OpenClawWebhook:
             bool: 是否成功
         """
         repo_name = repo_info["full_name"]
-        repo_url = repo_info.get("html_url", f"https://github.com/{repo_name}")
-        description = repo_info.get("description", "")
-
-        payload = {
-            "message": f"""检测到新的 GitHub 星标仓库！
-
-**仓库**: {repo_name}
-**描述**: {description}
-**链接**: {repo_url}
-
-请使用 Star-DART Skill 来处理：
-1. 获取该仓库的 README 和 DeepWiki 文档
-2. 使用 AI 精炼生成高质量中文文档
-3. 保存到飞书知识库
-4. 在多维表格中创建记录
-
-请开始处理。""",
-            "name": "GitHub Stars Webhook",
-            "wakeMode": "now",
-            "deliver": True,
-            "timeoutSeconds": 600  # 10 分钟超时
-        }
+        payload = build_agent_payload(repo_info)
 
         if OPENCLAW_AGENT_ID:
             payload["agentId"] = OPENCLAW_AGENT_ID
@@ -213,6 +286,7 @@ class OpenClawWebhook:
         url = f"{self.base_url}{WEBHOOK_PATH}"
 
         try:
+            httpx = require_httpx()
             async with httpx.AsyncClient() as client:
                 # 确保中文字符正确编码（使用UTF-8）
                 json_content = json.dumps(payload, ensure_ascii=False).encode('utf-8')
@@ -243,13 +317,41 @@ class OpenClawWebhook:
 
 
 # ========== 主程序 ==========
-async def main():
+def parse_args():
+    parser = argparse.ArgumentParser(description="Star-DART GitHub Star poller")
+    parser.add_argument("--dry-run", action="store_true", help="不访问 GitHub/OpenClaw，仅输出办公小浣熊演示任务")
+    parser.add_argument("--once", action="store_true", help="只运行一次轮询或 dry-run")
+    parser.add_argument("--sample", help="dry-run 使用的 GitHub Star 样例 JSON")
+    parser.add_argument("--limit", type=int, default=10, help="每次轮询检查的最近 Star 数量")
+    return parser.parse_args()
+
+
+def validate_runtime_config(args):
+    if args.dry_run:
+        if not args.sample:
+            raise ValueError("dry-run 需要提供 --sample examples/sample_starred_repo.json")
+        return
+    if not os.getenv("GITHUB_TOKEN"):
+        raise ValueError("请设置 GITHUB_TOKEN 环境变量")
+    if not WEBHOOK_TOKEN:
+        raise ValueError("请设置 WEBHOOK_TOKEN 环境变量")
+
+
+async def main(args=None):
+    args = args or parse_args()
+    validate_runtime_config(args)
+
+    if args.dry_run:
+        repo_info = load_sample_repo(args.sample)
+        print(format_dry_run_output(repo_info))
+        return
+
     logger.info("=" * 60)
     logger.info("GitHub Stars Webhook Poller 启动")
     logger.info(f"轮询间隔: {POLL_INTERVAL} 秒")
     logger.info("=" * 60)
 
-    github = GitHubMonitor(GITHUB_TOKEN)
+    github = GitHubMonitor(os.getenv("GITHUB_TOKEN"))
     state = StateManager(STATE_FILE)
     webhook = OpenClawWebhook(OPENCLAW_URL, WEBHOOK_TOKEN)
 
@@ -260,7 +362,7 @@ async def main():
 
         try:
             # 获取最近星标的仓库
-            stars = await github.fetch_recent_stars(limit=10)
+            stars = await github.fetch_recent_stars(limit=args.limit)
 
             new_count = 0
             for star in stars:
@@ -294,6 +396,9 @@ async def main():
             logger.error(f"轮询异常: {e}")
 
         # 等待下次轮询
+        if args.once:
+            logger.info("已完成一次轮询，退出")
+            break
         logger.info(f"\n等待 {POLL_INTERVAL} 秒后进行下一次轮询...")
         await asyncio.sleep(POLL_INTERVAL)
 

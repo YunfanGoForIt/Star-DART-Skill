@@ -4,9 +4,9 @@
 
 Star 了大量开源项目，当下觉得"以后用得上"，过段时间只剩模糊记忆。真正需要时翻遍 Star 列表也找不到，或者找到了懒得重新看。
 
-Star-DART 的目标：**把"看过"变成"能用"。** 一旦你 Star 了新仓库，自动生成高质量中文文档，保存到飞书知识库，配合多维表格索引，让收藏变成真正掌握。
+Star-DART 的目标：**把"看过"变成"能用"。** 一旦你 Star 了新仓库，系统通过定时轮询发现变化，自动生成高质量中文文档，保存到飞书知识库，配合多维表格索引，让收藏变成真正掌握。
 
-工作原理：系统常驻服务定期调用 GitHub API 获取最近星标，发现新仓库时向 OpenClaw 发送 webhook。OpenClaw 接到任务后，结合 DeepWiki 概述与 README 生成结构化中文文档。通过**飞书CLI**保存到飞书知识库，并创建多维表格索引。整个流程自动化运行，无需手动干预。文档产出具备统一结构（定位、亮点、架构、快速开始、边界等），不是简单的翻译。未来只要搜索关键词或按分类浏览，就能快速回到当初的判断与用法。
+工作原理：系统常驻服务默认每 **3 小时** 调用 GitHub API 获取最近星标，用户可通过 `POLL_INTERVAL` 自行调整轮询间隔。发现新仓库时向 Agent 发送任务。Agent 接到任务后，结合 DeepWiki 概述与 README 生成结构化中文文档。通过**飞书CLI**保存到飞书知识库，并创建多维表格索引。整个流程自动化运行，无需手动干预。文档产出具备统一结构（定位、亮点、架构、快速开始、边界等），不是简单的翻译。未来只要搜索关键词或按分类浏览，就能快速回到当初的判断与用法。
 
 **主动触发，现在看懂，未来找回，随时复用。让你的GitHub Star仓库变为你的专属开源项目知识库。**
 
@@ -64,7 +64,7 @@ cp .env.example .env
 可选：
 - `FEISHU_CHANNEL_ID` — 飞书群 ID，不填则不发送通知
 - `OPENCLAW_AGENT_ID` — 留空使用默认 agent
-- `POLL_INTERVAL` — 轮询间隔，默认 120 秒
+- `POLL_INTERVAL` — 轮询间隔，默认 10800 秒（3 小时），可自行调整
 
 **5. 创建飞书知识库多维表格**
 
@@ -83,6 +83,13 @@ cp .env.example .env
 ```bash
 python scripts/webhook_poller.py
 ```
+
+**演示模式（无需真实 Token）**
+```bash
+python scripts/webhook_poller.py --dry-run --once --sample examples/sample_starred_repo.json
+```
+
+演示模式用于参赛展示：它不访问 GitHub、OpenClaw 或飞书，只输出新增 Star 被发现后应交给办公小浣熊处理的标准任务说明。
 
 **7. 配置系统服务（可选）**
 
@@ -138,10 +145,38 @@ Star-DART/
 ## 工作流程
 
 ```
-你 Star 项目 → webhook_poller 检测到 → 触发 OpenClaw Agent
+你 Star 项目 → webhook_poller 默认每 3 小时轮询检测 → 触发 Agent
 → DeepWiki + README 生成中文文档 → 保存到飞书知识库
 → 创建多维表格索引 → 发送飞书卡片通知
 ```
+
+---
+
+## OPC 参赛版：办公小浣熊完整工作流
+
+Star-DART OPC 面向【商汤小浣熊 OPC 能力挑战赛 · 高手创造赛】进行了能力包装：它不只监控 GitHub Star，而是把新增 Star 交给办公小浣熊完成研究、文档、表格、看板、PPT 和知识库沉淀。
+
+推荐展示链路：
+
+```
+GitHub Star 定时轮询
+→ 办公小浣熊本地 Agent / Star-DART Skill
+→ research-synthesis 完成项目理解和价值研判
+→ docx/pdf 生成项目档案
+→ xlsx 生成项目资产台账
+→ data-dashboard 生成分类与趋势看板
+→ pptx / 专家团生成技术雷达汇报
+→ 云上知识库 / 本地文件 / 飞书 / Obsidian 持续沉淀
+→ 定时任务每周生成开源情报简报
+```
+
+参赛材料见：
+
+- `docs/opc_submission.md`
+- `docs/office_raccoon_workflow.md`
+- `docs/scoring_alignment.md`
+- `docs/ppt_outline.md`
+- `examples/`
 
 ---
 

@@ -1,0 +1,22 @@
+{
+  "summary": {
+    "total_repos": 3,
+    "high_reuse_repos": 2,
+    "new_this_week": 3,
+    "default_poll_interval_seconds": 10800
+  },
+  "category_distribution": [
+    { "category": "AI智能体框架", "count": 2 },
+    { "category": "开发相关", "count": 1 }
+  ],
+  "top_recommendations": [
+    {
+      "repo": "microsoft/playwright",
+      "reason": "用于验证办公小浣熊浏览器操作和 Web App 测试场景"
+    },
+    {
+      "repo": "openai/codex",
+      "reason": "用于研究代码 Agent 的任务执行与代码审查流程"
+    }
+  ]
+}
